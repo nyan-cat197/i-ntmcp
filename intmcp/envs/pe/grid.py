@@ -358,6 +358,85 @@ def get_pe8_grid() -> Grid:
     return _convert_map_to_grid(ascii_map, 8, 8)
 
 
+def get_open8_grid() -> Grid:
+    """Generate an open 8-by-8 PE diagnostic grid."""
+    ascii_map = (
+        "7  8   9"
+        "        "
+        "        "
+        "   5    "
+        "    6   "
+        "        "
+        "        "
+        "0  1   2"
+    )
+    return _convert_map_to_grid(ascii_map, 8, 8)
+
+
+def get_corridor8_grid() -> Grid:
+    """Generate an 8-by-8 corridor PE diagnostic grid."""
+    ascii_map = (
+        "##789###"
+        "##   ###"
+        "##   ###"
+        "## 5 ###"
+        "## 6 ###"
+        "##   ###"
+        "##   ###"
+        "##012###"
+    )
+    return _convert_map_to_grid(ascii_map, 8, 8)
+
+
+def get_bottleneck8_grid() -> Grid:
+    """Generate an 8-by-8 bottleneck PE diagnostic grid."""
+    ascii_map = (
+        "7  8  9 "
+        "        "
+        " ##  ## "
+        "###5####"
+        "###6####"
+        " ##  ## "
+        "        "
+        "0  1  2 "
+    )
+    return _convert_map_to_grid(ascii_map, 8, 8)
+
+
+def get_maze8_grid() -> Grid:
+    """Generate an 8-by-8 maze PE diagnostic grid."""
+    ascii_map = (
+        "7 #8 9 #"
+        "  #  #  "
+        "#   ## #"
+        "##5 #  #"
+        "#  #6  #"
+        "# ##   #"
+        "  #  #  "
+        "0 #1 2 #"
+    )
+    return _convert_map_to_grid(ascii_map, 8, 8)
+
+
+def get_large12_grid() -> Grid:
+    """Generate a larger, open maze-like 12-by-12 PE diagnostic grid."""
+    ascii_map = (
+        "7   # 8    9"
+        "    #       "
+        " ##   ###   "
+        "      #     "
+        " ### 5  ##  "
+        "     #      "
+        "  ##  6 ### "
+        "      #     "
+        " ###     ## "
+        "   #   #    "
+        "       #    "
+        "0   1     2 "
+    )
+    return _convert_map_to_grid(ascii_map, 12, 12)
+
+
 def _convert_map_to_grid(ascii_map: str,
                          height: int,
                          width: int,
@@ -416,6 +495,11 @@ def _convert_map_to_grid(ascii_map: str,
 
 SUPPORTED_GRIDS = {
     '8by8': get_pe8_grid,
+    'open8': get_open8_grid,
+    'corridor8': get_corridor8_grid,
+    'bottleneck8': get_bottleneck8_grid,
+    'maze8': get_maze8_grid,
+    'large12': get_large12_grid,
 }
 
 
