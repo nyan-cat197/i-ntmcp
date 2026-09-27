@@ -139,7 +139,7 @@ class ControlledPETest(unittest.TestCase):
                 with first.open(newline="", encoding="utf-8") as source:
                     tables[suffix] = list(csv.DictReader(source))
                 for row in tables[suffix]:
-                    for field, value in dict(grid="maze8", runner_start="56", runner_goal="3",
+                    for field, value in dict(grid="maze8", grid_name="maze8", runner_start="56", runner_goal="3",
                                             chaser_start="26", episode_seed="0", pursuer_level="1",
                                             evader_level="0", num_sims="32").items():
                         self.assertEqual(row[field], value)

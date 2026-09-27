@@ -24,11 +24,13 @@ def run_episode_loop(env: M.POSGModel,
     assert len(policies) == env.num_agents
 
     state, joint_obs = env.reset()
-    init_timestep = (state, joint_obs, [0.0] * env.num_agents, False)
+    for policy in policies:
+        policy.reset()
+    episode_end = env.is_terminal(state)
+    init_timestep = (state, joint_obs, [0.0] * env.num_agents, episode_end)
     init_action = M.JointAction.get_joint_null_action(env.num_agents)
-    yield env, init_timestep, init_action, policies, False
+    yield env, init_timestep, init_action, policies, episode_end
 
-    episode_end = False
     steps = 0
     while not episode_end:
         agent_actions = []
@@ -73,13 +75,15 @@ def run_sims(posg_model: M.POSGModel,
         for tracker in trackers:
             tracker.reset_episode()
 
-        for policy in policies:
-            policy.reset()
-
         timestep_sequence = run_episode_loop(posg_model, policies, step_limit)
         for t, (env, timestep, a, pis, ep_end) in enumerate(timestep_sequence):
             if t == 0:
                 run_log.initial_timestep(timestep, logger, render_asci)
+                if ep_end:
+                    # Finalize a zero-transition episode using the null action
+                    # marker; trackers must not count it as an executed step.
+                    for tracker in trackers:
+                        tracker.step(env, timestep, a, pis, ep_end)
                 if pause:
                     input("...")
                 continue

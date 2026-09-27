@@ -21,6 +21,11 @@ NestedStatisticList = Dict[tree.NestingLevel, Dict[M.AgentID, List[float]]]
 NESTED_POLICIES = (tree.NestedSearchTree,)
 
 
+def _is_transition(action: M.JointAction) -> bool:
+    """The initial timestep has a joint null action and executes no step."""
+    return not all(isinstance(a, M.NullAction) for a in action)
+
+
 def generate_episode_statistics(trackers: Iterable['Tracker']
                                 ) -> AgentStatisticsMap:
     """Generate episode statistics from set of trackers """
@@ -135,7 +140,8 @@ class EpisodeTracker(Tracker):
             self._discounts**self._current_episode_steps * rewards
         )
         self._current_episode_done = done
-        self._current_episode_steps += 1
+        if _is_transition(action):
+            self._current_episode_steps += 1
 
         if episode_end:
             self._num_episodes += 1
@@ -253,14 +259,14 @@ class SearchTimeTracker(Tracker):
              action: M.JointAction,
              policies: Sequence[policy.BasePolicy],
              episode_end: bool) -> None:
-        self._current_episode_steps += 1
-
-        for i in range(self._num_agents):
-            statistics = policies[i].statistics
-            for time_key in self.TIME_KEYS:
-                self._current_episode_times[i][time_key].append(
-                    statistics.get(time_key, 0.0)
-                )
+        if _is_transition(action):
+            self._current_episode_steps += 1
+            for i in range(self._num_agents):
+                statistics = policies[i].statistics
+                for time_key in self.TIME_KEYS:
+                    self._current_episode_times[i][time_key].append(
+                        statistics.get(time_key, 0.0)
+                    )
 
         if episode_end:
             self._num_episodes += 1
@@ -268,7 +274,9 @@ class SearchTimeTracker(Tracker):
             for i in range(self._num_agents):
                 for k in self.TIME_KEYS:
                     key_step_times = self._current_episode_times[i][k]
-                    self._times[i][k].append(np.mean(key_step_times))
+                    self._times[i][k].append(
+                        np.mean(key_step_times) if key_step_times else 0.0
+                    )
 
     def reset(self) -> None:
         self.reset_episode()
@@ -289,7 +297,7 @@ class SearchTimeTracker(Tracker):
         for i in range(self._num_agents):
             agent_stats = {}
             for key, step_times in self._current_episode_times[i].items():
-                agent_stats[key] = np.mean(step_times, axis=0)
+                agent_stats[key] = np.mean(step_times) if step_times else 0.0
             stats[i] = agent_stats
 
         return stats
@@ -326,12 +334,12 @@ class PolicyEntropyTracker(Tracker):
              action: M.JointAction,
              policies: Sequence[policy.BasePolicy],
              episode_end: bool) -> None:
-        self._current_episode_steps += 1
-
-        for i in range(self._num_agents):
-            action_dist = policies[i].get_pi_by_history()
-            entropy = self._calculate_entropy(action_dist)
-            self._current_episode_entropies[i].append(entropy)
+        if _is_transition(action):
+            self._current_episode_steps += 1
+            for i in range(self._num_agents):
+                action_dist = policies[i].get_pi_by_history()
+                entropy = self._calculate_entropy(action_dist)
+                self._current_episode_entropies[i].append(entropy)
 
         if episode_end:
             self._num_episodes += 1
@@ -365,8 +373,8 @@ class PolicyEntropyTracker(Tracker):
         for i in range(self._num_agents):
             step_entropies = self._current_episode_entropies[i]
             stats[i] = {
-                "policy_entropy_mean": np.mean(step_entropies),
-                "policy_entropy_std": np.std(step_entropies)
+                "policy_entropy_mean": np.mean(step_entropies) if step_entropies else 0.0,
+                "policy_entropy_std": np.std(step_entropies) if step_entropies else 0.0
             }
         return stats
 
@@ -409,12 +417,12 @@ class PolicyKLTracker(Tracker):
              action: M.JointAction,
              policies: Sequence[policy.BasePolicy],
              episode_end: bool) -> None:
-        self._current_episode_steps += 1
-
-        for i in range(self._num_agents):
-            kl_divergences = self._get_kl_divergences(i, policies)
-            for j, kl in kl_divergences.items():
-                self._current_episode_kls[i][j].append(kl)
+        if _is_transition(action):
+            self._current_episode_steps += 1
+            for i in range(self._num_agents):
+                kl_divergences = self._get_kl_divergences(i, policies)
+                for j, kl in kl_divergences.items():
+                    self._current_episode_kls[i][j].append(kl)
 
         if episode_end:
             self._num_episodes += 1
@@ -497,11 +505,11 @@ class PolicyKLTracker(Tracker):
                     kl_std = 0.0
                 else:
                     kls = step_kls[j]
-                    kl_mean = np.mean(kls)
+                    kl_mean = np.mean(kls) if kls else 0.0
                     if kl_mean == float('inf'):
                         kl_std = 0.0
                     else:
-                        kl_std = np.std(kls)
+                        kl_std = np.std(kls) if kls else 0.0
                 agent_stats[f"{header}_mean"] = kl_mean
                 agent_stats[f"{header}_std"] = kl_std
 
@@ -574,13 +582,13 @@ class NestedBeliefEntropyTracker(Tracker):
              action: M.JointAction,
              policies: Sequence[policy.BasePolicy],
              episode_end: bool) -> None:
-        self._current_episode_steps += 1
-
-        for i in range(self._num_agents):
-            policy_i = policies[i]
-            if isinstance(policy_i, tree.NestedSearchTree):
-                nested_belief = policy_i.get_nested_state_beliefs()
-                self._step_nested_entropies(i, nested_belief)
+        if _is_transition(action):
+            self._current_episode_steps += 1
+            for i in range(self._num_agents):
+                policy_i = policies[i]
+                if isinstance(policy_i, tree.NestedSearchTree):
+                    nested_belief = policy_i.get_nested_state_beliefs()
+                    self._step_nested_entropies(i, nested_belief)
 
         if episode_end:
             self._num_episodes += 1

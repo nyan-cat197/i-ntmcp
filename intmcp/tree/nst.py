@@ -126,6 +126,7 @@ class NestedSearchTree(policy.BasePolicy):
         self.history = M.AgentHistory.get_init_history()
         self.root = Node(None, None, self._initial_belief)
         self._last_action = M.Action.get_null_action()
+        self._rollout_policy.reset()
         for nested_tree in self.nested_trees.values():
             nested_tree.reset()
         self._reset_step_statistics()
@@ -417,7 +418,7 @@ class NestedSearchTree(policy.BasePolicy):
                 elif self.nesting_level > 0:
                     self.nested_trees[i]._rollout_policy.update(a_i, o_i)
 
-            self._rollout_policy.update(ego_action, ego_obs)
+            # The loop above advances each participating rollout policy once.
             ego_reward += self.gamma * self.simulate(
                 next_h_state, child_obs_node, depth+1
             )

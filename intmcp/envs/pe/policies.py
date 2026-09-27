@@ -48,9 +48,7 @@ class PESPPolicy(policy_lib.BasePolicy):
         ))
         self._dists = sp_lib.all_shortest_paths(runner_end_locs, self._grid)
 
-        self._loc = runner_end_locs[0]
-        self._prev_loc = -1
-        self._update_num = 0
+        self.reset()
 
     def get_action(self) -> M.Action:
         _, obs = self.history.get_last_step()
@@ -158,14 +156,18 @@ class PESPPolicy(policy_lib.BasePolicy):
         self._update_num += 1
 
     def reset(self) -> None:
-        super().reset()
-        assert isinstance(self.model, PEModel)
-        self._update_num = 0
+        """Start an episode at the model's currently configured agent start."""
+        self.reset_history(M.AgentHistory.get_init_history())
 
-        if self._is_runner:
-            self._loc = self.model.runner_start_loc
-        else:
-            self._loc = self.model.chaser_start_loc
+    def reset_history(self, history: M.AgentHistory) -> None:
+        """Restore all cached state from an episode or simulation history."""
+        super().reset_history(history)
+        self._loc, self._prev_loc = self._get_loc_from_history(history)
+        self._update_num = len(history.history)
+        self._last_action = (
+            history.get_last_step()[0] if self._update_num
+            else M.Action.get_null_action()
+        )
 
     def _get_sp_action(self,
                        loc: Loc,

@@ -9,8 +9,8 @@ An episode with T transitions has T+1 observation samples: reset at timestep 0
 and every returned step observation, including the terminal one. Distance means
 include all these samples. First-detection timesteps are blank if never detected.
 Seeing terminates a transition, so post-step seen=True occurs at most once;
-seen-count is not a repeated-observation measure. A seen reset observation is
-also recorded (the existing loop does not test initial terminality).
+seen-count is not a repeated-observation measure. A terminal reset observation
+is recorded as a zero-transition episode.
 Unreachable shortest-path distances are inf and remain in distance aggregates.
 For MIXED runs, timestep evader_policy/evader_level identify the sampled policy.
 """
@@ -82,6 +82,7 @@ TIMESTEP_FIELDS = [
     "grid", "pursuer_policy", "pursuer_level", "evader_policy", "evader_level",
     "seed", "episode", "timestep", "pursuer_seen", "pursuer_heard",
     "runner_loc", "chaser_loc", "manhattan_distance", "shortest_path_distance",
+    "grid_name",
 ]
 
 
@@ -207,7 +208,7 @@ def run_episode_with_final_state(
     pursuer.reset()
 
     steps = 0
-    done = False
+    done = env.is_terminal(state)
     while not done and steps < step_limit:
         actions = model_lib.JointAction(
             (
@@ -420,6 +421,7 @@ def run(args: argparse.Namespace) -> None:
                 pursuer_win = outcome == model_lib.Outcomes.WIN
                 wins += int(pursuer_win)
                 episode_row = {
+                    "grid_name": args.grid_name,
                     "pursuer_policy": pursuer_name,
                     "evader_policy": evader_name,
                     "sampled_evader_policy": sampled_name,
@@ -442,6 +444,7 @@ def run(args: argparse.Namespace) -> None:
                 episode_writer.writerow(episode_row)
                 episode_file.flush()
                 timestep_metadata = {
+                    "grid_name": args.grid_name,
                     "grid": args.grid_name,
                     "pursuer_policy": pursuer_name,
                     "pursuer_level": csv_level(pursuer_name),
@@ -468,6 +471,7 @@ def run(args: argparse.Namespace) -> None:
 
             score = wins / args.num_episodes
             summary_writer.writerow({
+                "grid_name": args.grid_name,
                 "pursuer_policy": pursuer_name,
                 "evader_policy": evader_name,
                 "pursuer_level": csv_level(pursuer_name),

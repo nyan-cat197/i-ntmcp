@@ -55,6 +55,7 @@ SUMMARY_FIELDS = [
     "seed",
     "score",
     "wins",
+    "grid_name",
 ]
 EPISODE_FIELDS = [
     "pursuer_policy",
@@ -69,6 +70,7 @@ EPISODE_FIELDS = [
     "pursuer_win",
     "pursuer_outcome",
     "episode_steps",
+    "grid_name",
 ]
 
 
@@ -195,7 +197,7 @@ def run_episode(
     pursuer.reset()
 
     steps = 0
-    done = False
+    done = env.is_terminal(state)
     while not done and steps < step_limit:
         # PE defines the runner/evader as agent 0 and chaser/pursuer as agent 1.
         actions = model_lib.JointAction(
@@ -341,6 +343,7 @@ def run(args: argparse.Namespace) -> None:
                             pursuer_win = outcome == model_lib.Outcomes.WIN
                             wins += int(pursuer_win)
                             episode_writer.writerow({
+                                "grid_name": args.grid_name,
                                 "pursuer_policy": pursuer_name,
                                 "evader_policy": evader_name,
                                 "sampled_evader_policy": sampled_name,
@@ -361,6 +364,7 @@ def run(args: argparse.Namespace) -> None:
                             )
 
                         summary_writer.writerow({
+                            "grid_name": args.grid_name,
                             "pursuer_policy": pursuer_name,
                             "evader_policy": evader_name,
                             "pursuer_level": csv_level(pursuer_name),

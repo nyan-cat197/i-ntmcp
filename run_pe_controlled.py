@@ -217,6 +217,7 @@ def run(args: argparse.Namespace) -> None:
         )
         win = int(outcome == model_lib.Outcomes.WIN)
         common = {
+            "grid_name": args.grid_name,
             "grid": args.grid_name,
             "runner_start": args.runner_start,
             "runner_goal": args.runner_goal,
